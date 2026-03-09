@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Код Java</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+    <a href="/">Теория</a>
+    <a href="/code.html" class="active">Код Java</a>
+    <a href="/results.html">Результаты</a>
+</nav>
+
+<h1>Реализация алгоритмов на Java</h1>
+<p>Ниже приведены основные классы серверной части приложения: сервис с реализациями алгоритмов сортировки и поиска, контроллер эксперимента и модель для передачи результатов на фронтенд.</p>
+
+<h2>Интерфейс SortingAlgorithm</h2>
+<pre>
+package com.example.sorting.service;
+
+@FunctionalInterface
+public interface SortingAlgorithm {
+    void sort(int[] arr);
+}
+</pre>
+
+<h2>Сервис SortingService</h2>
+<pre>
+package com.example.sorting.service;
+
+import org.springframework.stereotype.Service;
+import java.util.*;
+
+@Service
+public class SortingService {
+
+    public void bubbleSort(int[] arr) {
+        int n = arr.length;
+        for (int i = 0; i &lt; n - 1; i++) {
+            boolean swapped = false;
+            for (int j = 0; j &lt; n - 1 - i; j++) {
+                if (arr[j] &gt; arr[j + 1]) {
+                    int temp = arr[j];
+                    arr[j] = arr[j + 1];
+                    arr[j + 1] = temp;
+                    swapped = true;
+                }
+            }
+            if (!swapped) break;
+        }
+    }
+
+    public void insertionSort(int[] arr) {
+        for (int i = 1; i &lt; arr.length; i++) {
+            int key = arr[i];
+            int j = i - 1;
+            while (j &gt;= 0 &amp;&amp; arr[j] &gt; key) {
+                arr[j + 1] = arr[j];
+                j--;
+            }
+            arr[j + 1] = key;
+        }
+    }
+
+    public void selectionSort(int[] arr) {
+        int n = arr.length;
+        for (int i = 0; i &lt; n - 1; i++) {
+            int minIdx = i;
+            for (int j = i + 1; j &lt; n; j++) {
+                if (arr[j] &lt; arr[minIdx]) {
+                    minIdx = j;
+                }
+            }
+            int temp = arr[minIdx];
+            arr[minIdx] = arr[i];
+            arr[i] = temp;
+        }
+    }
+
+    public void mergeSort(int[] arr) {
+        if (arr.length &lt;= 1) return;
+        int mid = arr.length / 2;
+        int[] left = Arrays.copyOfRange(arr, 0, mid);
+        int[] right = Arrays.copyOfRange(arr, mid, arr.length);
+        mergeSort(left);
+        mergeSort(right);
+        merge(arr, left, right);
+    }
+
+    private void merge(int[] result, int[] left, int[] right) {
+        int i = 0, j = 0, k = 0;
+        while (i &lt; left.length &amp;&amp; j &lt; right.length) {
+            if (left[i] &lt;= right[j]) {
+                result[k++] = left[i++];
+            } else {
+                result[k++] = right[j++];
+            }
+        }
+        while (i &lt; left.length) result[k++] = left[i++];
+        while (j &lt; right.length) result[k++] = right[j++];
+    }
+
+    public void quickSort(int[] arr) {
+        quickSort(arr, 0, arr.length - 1);
+    }
+
+    private void quickSort(int[] arr, int low, int high) {
+        if (low &lt; high) {
+            int pi = partition(arr, low, high);
+            quickSort(arr, low, pi - 1);
+            quickSort(arr, pi + 1, high);
+        }
+    }
+
+    private int partition(int[] arr, int low, int high) {
+        int pivot = arr[high];
+        int i = low - 1;
+        for (int j = low; j &lt; high; j++) {
+            if (arr[j] &lt; pivot) {
+                i++;
+                int temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+        }
+        int temp = arr[i + 1];
+        arr[i + 1] = arr[high];
+        arr[high] = temp;
+        return i + 1;
+    }
+
+    public double measureTime(SortingAlgorithm algo, int[] arr, int copies) {
+        long total = 0;
+        for (int i = 0; i &lt; copies; i++) {
+            int[] copy = arr.clone();
+            long start = System.nanoTime();
+            algo.sort(copy);
+            long end = System.nanoTime();
+            total += (end - start);
+        }
+        return total / (copies * 1_000_000.0);
+    }
+
+    public int linearSearch(int[] arr, int target) {
+        for (int i = 0; i &lt; arr.length; i++) {
+            if (arr[i] == target) return i;
+        }
+        return -1;
+    }
+
+    public int binarySearch(int[] arr, int target) {
+        int left = 0, right = arr.length - 1;
+        while (left &lt;= right) {
+            int mid = left + (right - left) / 2;
+            if (arr[mid] == target) return mid;
+            else if (arr[mid] &lt; target) left = mid + 1;
+            else right = mid - 1;
+        }
+        return -1;
+    }
+}
+</pre>
+
+<h2>Контроллер ExperimentController</h2>
+<pre>
+package com.example.sorting.controller;
+
+import com.example.sorting.model.ExperimentResult;
+import com.example.sorting.service.SortingService;
+import com.example.sorting.service.SortingAlgorithm;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.*;
+
+@RestController
+@RequestMapping("/api")
+public class ExperimentController {
+
+    private final SortingService sortingService;
+
+    public ExperimentController(SortingService sortingService) {
+        this.sortingService = sortingService;
+    }
+
+    @GetMapping("/experiment")
+    public ExperimentResult runExperiment() {
+        int[] sizes = {100, 1000, 5000};
+        int copies = 3;
+        Random rand = new Random();
+
+        Map&lt;String, SortingAlgorithm&gt; algorithms = new LinkedHashMap&lt;&gt;();
+        algorithms.put("Bubble Sort", sortingService::bubbleSort);
+        algorithms.put("Insertion Sort", sortingService::insertionSort);
+        algorithms.put("Selection Sort", sortingService::selectionSort);
+        algorithms.put("Merge Sort", sortingService::mergeSort);
+        algorithms.put("Quick Sort", sortingService::quickSort);
+        algorithms.put("Built-in sort", Arrays::sort);
+
+        Map&lt;String, double[]&gt; results = new LinkedHashMap&lt;&gt;();
+
+        for (Map.Entry&lt;String, SortingAlgorithm&gt; entry : algorithms.entrySet()) {
+            String name = entry.getKey();
+            SortingAlgorithm algo = entry.getValue();
+            double[] times = new double[sizes.length];
+
+            for (int i = 0; i &lt; sizes.length; i++) {
+                int size = sizes[i];
+                int[] arr = rand.ints(size, 0, 10001).toArray();
+                double time = sortingService.measureTime(algo, arr, copies);
+                times[i] = time;
+            }
+            results.put(name, times);
+        }
+
+        return new ExperimentResult(results, sizes);
+    }
+}
+</pre>
+
+<h2>Модель ExperimentResult</h2>
+<pre>
+package com.example.sorting.model;
+
+import java.util.Map;
+
+public class ExperimentResult {
+    private Map&lt;String, double[]&gt; times;
+    private int[] sizes;
+
+    public ExperimentResult(Map&lt;String, double[]&gt; times, int[] sizes) {
+        this.times = times;
+        this.sizes = sizes;
+    }
+
+    public Map&lt;String, double[]&gt; getTimes() { return times; }
+    public void setTimes(Map&lt;String, double[]&gt; times) { this.times = times; }
+    public int[] getSizes() { return sizes; }
+    public void setSizes(int[] sizes) { this.sizes = sizes; }
+}
+</pre>
+
+<div class="footer">
+    &copy; 2026 | Отчёт по алгоритмам сортировки и поиска на Java
+</div>
+</body>
+</html>
