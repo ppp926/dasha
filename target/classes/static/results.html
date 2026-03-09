@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результаты эксперимента</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/js/results.js" defer></script>
+</head>
+<body>
+    <nav>
+        <a href="/">Теория</a>
+        <a href="/code.html">Код Java</a>
+        <a href="/results.html" class="active">Результаты</a>
+    </nav>
+
+    <h1>Результаты экспериментального исследования</h1>
+    <button class="btn" onclick="runExperiment()">Запустить эксперимент</button>
+    
+    <div id="loader" class="loader" style="display: none;"></div>
+    <div id="errorMsg" style="color: red; margin-top: 20px; display: none;"></div>
+
+    <table id="resultTable" style="display: none; margin-top: 20px;">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="note">
+        <strong>Примечание:</strong> Время указано в миллисекундах, усреднено по трём запускам. Массивы генерируются случайно каждый раз, поэтому результаты могут немного отличаться.
+    </div>
+
+    <div class="footer">
+        &copy; 2026 | Отчёт по алгоритмам сортировки и поиска на Java
+    </div>
+</body>
+</html>
